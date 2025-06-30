@@ -46,7 +46,6 @@
             border-radius: 16px;
         }
         .drop-zone.active { opacity: 1; visibility: visible; }
-        .drop-icon { font-size: 4rem; margin-bottom: 1rem; color: #2563eb; }
         .video-player {
             width: 100%;
             height: auto;
@@ -98,26 +97,19 @@
         }
         .progress-container:hover .progress-handle { opacity: 1; }
         .control-buttons { 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between;
-            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 20px;
         }
         .control-group {
             display: flex;
             align-items: center;
             gap: 15px;
         }
-        .control-group.left {
-            justify-content: flex-start;
-        }
-        .control-group.center {
-            justify-content: center;
-            flex: 1;
-        }
-        .control-group.right {
-            justify-content: flex-end;
-        }
+        .control-group.left { justify-content: flex-start; }
+        .control-group.center { justify-content: center; }
+        .control-group.right { justify-content: flex-end; }
         .btn {
             background: none;
             border: none;
@@ -166,21 +158,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .speed-select:hover {
-            background: rgba(40, 40, 40, 0.95);
-            border-color: rgba(255,255,255,0.5);
-        }
-        .speed-select:focus {
-            outline: none;
-            background: rgba(40, 40, 40, 0.95);
-            border-color: #2563eb;
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-        }
-        .speed-select option {
-            background: #1a1a1a;
-            color: white;
-            padding: 4px 8px;
-        }
+        .speed-select:hover { background: rgba(40, 40, 40, 0.95); }
         .file-input-container { text-align: center; padding: 60px 20px; }
         .file-input { display: none; }
         .file-label {
@@ -272,40 +250,106 @@
             padding: 6px 10px;
             border-radius: 6px;
             font-size: 12px;
-            font-weight: 500;
             white-space: nowrap;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
             z-index: 1000;
             pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        .tooltip::before {
-            content: '';
+        .tooltip:hover::after { opacity: 1; visibility: visible; }
+        
+        /* Volume Overlay Styles */
+        .volume-overlay {
             position: absolute;
-            bottom: 110%;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            border: 5px solid transparent;
-            border-top-color: rgba(0, 0, 0, 0.9);
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 18px;
+            z-index: 200;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
-            z-index: 1000;
-            pointer-events: none;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
-        .tooltip:hover::after,
-        .tooltip:hover::before {
+        
+        .volume-overlay.visible {
             opacity: 1;
             visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .volume-overlay-icon {
+            font-size: 24px;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        .volume-overlay-bar {
+            width: 150px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .volume-overlay-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            border-radius: 4px;
+            transition: width 0.2s ease;
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+            position: relative;
+        }
+        
+        .volume-overlay-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 3px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .volume-overlay-text {
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+            color: #e5e7eb;
+        }
+        
+        /* Muted state styling */
+        .volume-overlay.muted .volume-overlay-fill {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+        
+        .volume-overlay.muted .volume-overlay-icon {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
         }
     </style>
 </head>
 <body>
     <div class="video-container" id="vc">
         <div class="drop-zone" id="dz">
-            <div class="drop-icon">📁</div>
+            <div style="font-size: 4rem; margin-bottom: 1rem; color: #2563eb;">📁</div>
             <h3>Drop your video file here</h3>
             <p>or click to browse</p>
         </div>
@@ -323,6 +367,15 @@
             <div>Loading video...</div>
         </div>
 
+        <!-- Volume Overlay -->
+        <div class="volume-overlay" id="vol-overlay">
+            <div class="volume-overlay-icon" id="vol-icon">🔊</div>
+            <div class="volume-overlay-bar">
+                <div class="volume-overlay-fill" id="vol-fill"></div>
+            </div>
+            <div class="volume-overlay-text" id="vol-text">100</div>
+        </div>
+
         <div class="controls" id="ct">
             <div class="progress-container" id="pc">
                 <div class="progress-bar" id="pb"></div>
@@ -330,8 +383,11 @@
             </div>
             
             <div class="control-buttons">
-                <!-- Left side: Volume and Speed -->
                 <div class="control-group left">
+                    <div class="time-display">
+                        <span id="ct1">0:00</span> / <span id="dur">0:00</span>
+                    </div>
+                    
                     <div class="volume-container">
                         <button class="btn tooltip" id="mt" data-tooltip="Mute/Unmute (M)">🔊</button>
                         <input type="range" class="volume-slider tooltip" id="vs" min="0" max="100" value="100" data-tooltip="Volume (↑/↓)">
@@ -347,18 +403,12 @@
                     </select>
                 </div>
 
-                <!-- Center: Rewind, Play/Pause, Forward and Time Display -->
                 <div class="control-group center">
                     <button class="btn tooltip" id="rw" data-tooltip="Rewind 10s (←)">⏪</button>
                     <button class="btn btn-primary tooltip" id="pp" data-tooltip="Play/Pause (Space)">▶️</button>
                     <button class="btn tooltip" id="fw" data-tooltip="Forward 10s (→)">⏩</button>
-                    
-                    <div class="time-display">
-                        <span id="ct1">0:00</span> / <span id="dur">0:00</span>
-                    </div>
                 </div>
 
-                <!-- Right side: Rest of the controls -->
                 <div class="control-group right">
                     <button class="btn tooltip" id="fs" data-tooltip="Fullscreen (F)">⛶</button>
                     <button class="btn tooltip" id="pip" data-tooltip="Picture-in-Picture (P)">📺</button>
@@ -386,33 +436,9 @@
     <script>
         class VideoPlayer {
             constructor() {
-                // Element references
-                this.el = id => document.getElementById(id);
-                this.vc = this.el('vc');
-                this.vp = this.el('vp');
-                this.fi = this.el('fi');
-                this.fic = this.el('fic');
-                this.dz = this.el('dz');
-                this.ld = this.el('ld');
-                this.ct = this.el('ct');
-                this.pp = this.el('pp');
-                this.rw = this.el('rw');
-                this.fw = this.el('fw');
-                this.pc = this.el('pc');
-                this.pb = this.el('pb');
-                this.ph = this.el('ph');
-                this.ct1 = this.el('ct1');
-                this.dur = this.el('dur');
-                this.mt = this.el('mt');
-                this.vs = this.el('vs');
-                this.ss = this.el('ss');
-                this.fs = this.el('fs');
-                this.pip = this.el('pip');
-                this.cs = this.el('cs');
-                this.hlp = this.el('hlp');
-                this.ks = this.el('ks');
+                this.els = 'vc,vp,fi,fic,dz,ld,ct,pp,rw,fw,pc,pb,ph,ct1,dur,mt,vs,ss,fs,pip,cs,hlp,ks,vol-overlay,vol-icon,vol-fill,vol-text'
+                    .split(',').reduce((acc, id) => ({ ...acc, [id.replace('-', '')]: document.getElementById(id) }), {});
                 
-                // State variables
                 this.state = {
                     isDragging: false,
                     wasPlaying: false,
@@ -421,60 +447,64 @@
                     spaceHoldTimer: null,
                     controlsTimer: null,
                     controlsVisible: false,
-                    dragCount: 0
+                    dragCount: 0,
+                    volumeOverlayTimer: null
                 };
                 
                 this.init();
             }
 
             init() {
-                // File input and drag/drop
-                this.fi.onchange = e => this.loadVideo(e.target.files[0]);
+                const { vc, vp, fi, dz, pc, ph, vs, ss, pp, rw, fw, mt, fs, pip, cs, hlp, ks } = this.els;
+                
+                // File handling
+                fi.onchange = e => this.loadVideo(e.target.files[0]);
                 ['dragover', 'dragenter'].forEach(evt => 
-                    this.vc.addEventListener(evt, e => this.handleDrag(e, true))
+                    vc.addEventListener(evt, e => this.handleDrag(e, true))
                 );
-                this.vc.ondragleave = e => this.handleDrag(e, false);
-                this.vc.ondrop = e => this.handleDrop(e);
-                this.dz.onclick = () => this.fi.click();
+                vc.ondragleave = e => this.handleDrag(e, false);
+                vc.ondrop = e => this.handleDrop(e);
+                dz.onclick = () => fi.click();
 
                 // Video events
-                this.vp.onloadstart = () => this.ld.style.display = 'block';
-                this.vp.oncanplay = () => this.ld.style.display = 'none';
-                this.vp.ontimeupdate = () => this.updateProgress();
-                this.vp.onloadedmetadata = () => this.dur.textContent = this.formatTime(this.vp.duration);
-                this.vp.onended = () => { this.pp.textContent = '▶️'; this.showControls(true); };
-                this.vp.onclick = () => this.togglePlayPause();
-                this.vp.ondblclick = () => this.toggleFullscreen();
+                Object.assign(vp, {
+                    onloadstart: () => this.els.ld.style.display = 'block',
+                    oncanplay: () => this.els.ld.style.display = 'none',
+                    ontimeupdate: () => this.updateProgress(),
+                    onloadedmetadata: () => this.els.dur.textContent = this.formatTime(vp.duration),
+                    onended: () => { pp.textContent = '▶️'; this.showControls(true); },
+                    onclick: () => this.togglePlayPause(),
+                    ondblclick: () => this.toggleFullscreen()
+                });
 
-                // Control buttons
-                this.pp.onclick = () => this.togglePlayPause();
-                this.rw.onclick = () => this.vp.currentTime = Math.max(0, this.vp.currentTime - 10);
-                this.fw.onclick = () => this.vp.currentTime = Math.min(this.vp.duration, this.vp.currentTime + 10);
-                this.mt.onclick = () => this.toggleMute();
-                this.fs.onclick = () => this.toggleFullscreen();
-                this.pip.onclick = () => this.togglePIP();
-                this.cs.onclick = () => this.changeSource();
-                this.hlp.onclick = () => this.ks.classList.toggle('visible');
+                // Controls
+                pp.onclick = () => this.togglePlayPause();
+                rw.onclick = () => vp.currentTime = Math.max(0, vp.currentTime - 10);
+                fw.onclick = () => vp.currentTime = Math.min(vp.duration, vp.currentTime + 10);
+                mt.onclick = () => this.toggleMute();
+                fs.onclick = () => this.toggleFullscreen();
+                pip.onclick = () => this.togglePIP();
+                cs.onclick = () => this.changeSource();
+                hlp.onclick = () => ks.classList.toggle('visible');
 
-                // Progress bar
-                this.pc.onclick = e => this.seek(e);
-                this.pc.onmousedown = e => this.startDrag(e);
-                this.ph.onmousedown = e => this.startDrag(e);
+                // Progress
+                pc.onclick = e => this.seek(e);
+                [pc, ph].forEach(el => el.onmousedown = e => this.startDrag(e));
                 document.onmousemove = e => this.drag(e);
                 document.onmouseup = () => this.endDrag();
 
-                // Volume and speed
-                this.vs.oninput = e => this.setVolume(e.target.value);
-                this.ss.onchange = e => this.vp.playbackRate = parseFloat(e.target.value);
+                // Volume & Speed
+                vs.oninput = e => this.setVolume(e.target.value);
+                ss.onchange = e => vp.playbackRate = parseFloat(e.target.value);
 
                 // Auto-hide controls
-                this.vc.onmousemove = () => this.showControls();
-                this.vc.onmouseleave = () => this.hideControlsDelayed();
-                this.ct.onmouseenter = () => this.showControls();
-                this.ct.onmouseleave = () => this.hideControlsDelayed();
-                this.vc.ontouchstart = () => this.toggleControlsVisibility();
+                vc.onmousemove = () => this.showControls();
+                vc.onmouseleave = () => this.hideControlsDelayed();
+                this.els.ct.onmouseenter = () => this.showControls();
+                this.els.ct.onmouseleave = () => this.hideControlsDelayed();
+                vc.ontouchstart = () => this.toggleControlsVisibility();
 
-                // Keyboard events
+                // Keyboard
                 document.onkeydown = e => this.handleKeyDown(e);
                 document.onkeyup = e => this.handleKeyUp(e);
             }
@@ -487,13 +517,10 @@
                 
                 if (isEnter) {
                     this.state.dragCount++;
-                    this.dz.classList.add('active');
+                    this.els.dz.classList.add('active');
                 } else {
-                    this.state.dragCount--;
-                    if (this.state.dragCount <= 0) {
-                        this.state.dragCount = 0;
-                        this.dz.classList.remove('active');
-                    }
+                    this.state.dragCount = Math.max(0, this.state.dragCount - 1);
+                    if (this.state.dragCount === 0) this.els.dz.classList.remove('active');
                 }
             }
 
@@ -503,82 +530,83 @@
                 e.preventDefault();
                 e.stopPropagation();
                 this.state.dragCount = 0;
-                this.dz.classList.remove('active');
+                this.els.dz.classList.remove('active');
                 
                 const file = e.dataTransfer.files[0];
-                if (file?.type.startsWith('video/')) {
-                    this.loadVideo(file);
-                }
+                if (file?.type.startsWith('video/')) this.loadVideo(file);
             }
 
             isControlsInteraction(e) {
-                return [this.ct, this.pc, this.pb, this.ph, this.vs].some(el => 
-                    el === e.target || el.contains(e.target)
-                );
+                const { ct, pc, pb, ph, vs } = this.els;
+                return [ct, pc, pb, ph, vs].some(el => el === e.target || el.contains(e.target));
             }
 
             loadVideo(file) {
                 if (!file) return;
-                if (this.vp.src?.startsWith('blob:')) URL.revokeObjectURL(this.vp.src);
+                const { vp, fic, pp, pb, ph } = this.els;
                 
-                this.vp.src = URL.createObjectURL(file);
-                this.fic.style.display = 'none';
-                this.vp.style.display = 'block';
+                if (vp.src?.startsWith('blob:')) URL.revokeObjectURL(vp.src);
+                
+                vp.src = URL.createObjectURL(file);
+                fic.style.display = 'none';
+                vp.style.display = 'block';
                 document.title = `Video Player - ${file.name}`;
-                this.pp.textContent = '▶️';
-                this.pb.style.width = '0%';
-                this.ph.style.left = '0%';
+                pp.textContent = '▶️';
+                pb.style.width = '0%';
+                ph.style.left = '0%';
             }
 
             togglePlayPause() {
-                if (this.vp.paused) {
-                    this.vp.play();
-                    this.pp.textContent = '⏸️';
+                const { vp, pp } = this.els;
+                if (vp.paused) {
+                    vp.play();
+                    pp.textContent = '⏸️';
                     this.showControls();
                 } else {
-                    this.vp.pause();
-                    this.pp.textContent = '▶️';
+                    vp.pause();
+                    pp.textContent = '▶️';
                     this.showControls(true);
                 }
             }
 
             updateProgress() {
-                if (!this.state.isDragging) {
-                    const progress = (this.vp.currentTime / this.vp.duration) * 100;
-                    this.pb.style.width = progress + '%';
-                    this.ph.style.left = progress + '%';
-                }
-                this.ct1.textContent = this.formatTime(this.vp.currentTime);
+                if (this.state.isDragging) return;
+                const { vp, pb, ph, ct1 } = this.els;
+                const progress = (vp.currentTime / vp.duration) * 100;
+                pb.style.width = progress + '%';
+                ph.style.left = progress + '%';
+                ct1.textContent = this.formatTime(vp.currentTime);
             }
 
             formatTime(seconds) {
-                const mins = Math.floor(seconds / 60);
-                const secs = Math.floor(seconds % 60);
-                return `${mins}:${secs.toString().padStart(2, '0')}`;
-            }
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+        return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
 
             seek(e) {
-                const rect = this.pc.getBoundingClientRect();
+                const rect = this.els.pc.getBoundingClientRect();
                 const percent = (e.clientX - rect.left) / rect.width;
-                this.vp.currentTime = percent * this.vp.duration;
+                this.els.vp.currentTime = percent * this.els.vp.duration;
             }
 
             startDrag(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.state.isDragging = true;
-                this.state.wasPlaying = !this.vp.paused;
-                this.vp.pause();
+                this.state.wasPlaying = !this.els.vp.paused;
+                this.els.vp.pause();
                 this.seek(e);
-                this.vc.style.pointerEvents = 'none';
-                this.pc.style.pointerEvents = 'auto';
-                this.ph.style.pointerEvents = 'auto';
             }
 
             drag(e) { 
                 if (this.state.isDragging) {
                     e.preventDefault();
-                    e.stopPropagation();
                     this.seek(e);
                 }
             }
@@ -586,30 +614,73 @@
             endDrag() {
                 if (this.state.isDragging) {
                     this.state.isDragging = false;
-                    this.state.wasPlaying && this.vp.play();
-                    this.vc.style.pointerEvents = 'auto';
+                    if (this.state.wasPlaying) this.els.vp.play();
                 }
             }
 
             toggleMute() {
-                this.vp.muted = !this.vp.muted;
-                this.mt.textContent = this.vp.muted ? '🔇' : '🔊';
-                if (!this.vp.muted) this.vs.value = this.vp.volume * 100;
+                const { vp, mt, vs } = this.els;
+                vp.muted = !vp.muted;
+                mt.textContent = vp.muted ? '🔇' : '🔊';
+                if (!vp.muted) vs.value = vp.volume * 100;
+                
+                // Show volume overlay when muting/unmuting
+                this.showVolumeOverlay();
             }
 
-            setVolume(value) {
-                this.vp.volume = value / 100;
-                this.vp.muted = false;
-                this.mt.textContent = value > 0 ? '🔊' : '🔇';
+            setVolume(value, showOverlay = false) {
+                const { vp, mt } = this.els;
+                vp.volume = value / 100;
+                vp.muted = false;
+                mt.textContent = value > 0 ? '🔊' : '🔇';
+                
+                if (showOverlay) {
+                    this.showVolumeOverlay();
+                }
+            }
+
+            showVolumeOverlay() {
+                const { vp, voloverlay, volicon, volfill, voltext } = this.els;
+                
+                if (!vp.src) return;
+                
+                const volume = Math.round(vp.volume * 100);
+                const isMuted = vp.muted || volume === 0;
+                
+                // Update overlay content
+                volicon.textContent = isMuted ? '🔇' : (volume > 50 ? '🔊' : (volume > 0 ? '🔉' : '🔇'));
+                volfill.style.width = isMuted ? '0%' : `${volume}%`;
+                voltext.textContent = isMuted ? '0' : volume.toString();
+                
+                // Update styling for muted state
+                if (isMuted) {
+                    voloverlay.classList.add('muted');
+                } else {
+                    voloverlay.classList.remove('muted');
+                }
+                
+                // Show overlay
+                voloverlay.classList.add('visible');
+                
+                // Clear existing timer
+                if (this.state.volumeOverlayTimer) {
+                    clearTimeout(this.state.volumeOverlayTimer);
+                }
+                
+                // Hide overlay after 2 seconds
+                this.state.volumeOverlayTimer = setTimeout(() => {
+                    voloverlay.classList.remove('visible');
+                }, 2000);
             }
 
             toggleFullscreen() {
+                const { vc } = this.els;
                 if (!document.fullscreenElement) {
-                    this.vc.requestFullscreen();
-                    this.vc.classList.add('fullscreen');
+                    vc.requestFullscreen();
+                    vc.classList.add('fullscreen');
                 } else {
                     document.exitFullscreen();
-                    this.vc.classList.remove('fullscreen');
+                    vc.classList.remove('fullscreen');
                 }
             }
 
@@ -617,45 +688,43 @@
                 try {
                     if (document.pictureInPictureElement) {
                         await document.exitPictureInPicture();
-                    } else if (document.pictureInPictureEnabled && !this.vp.disablePictureInPicture) {
-                        await this.vp.requestPictureInPicture();
+                    } else if (document.pictureInPictureEnabled && !this.els.vp.disablePictureInPicture) {
+                        await this.els.vp.requestPictureInPicture();
                     }
-                } catch (error) {
-                    console.log('PIP not supported or failed:', error);
+                } catch (e) {
+                    console.log('PIP not supported');
                 }
             }
 
             changeSource() {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'video/*';
-                input.style.display = 'none';
-                input.onchange = e => {
-                    const file = e.target.files[0];
-                    if (file) this.loadVideo(file);
-                    document.body.removeChild(input);
-                };
+                const input = Object.assign(document.createElement('input'), {
+                    type: 'file',
+                    accept: 'video/*',
+                    style: 'display: none',
+                    onchange: e => {
+                        const file = e.target.files[0];
+                        if (file) this.loadVideo(file);
+                        document.body.removeChild(input);
+                    }
+                });
                 document.body.appendChild(input);
                 input.click();
             }
 
             showControls(persistent = false) {
                 this.state.controlsVisible = true;
-                this.ct.classList.add('visible');
-                document.body.style.cursor = 'default';
+                this.els.ct.classList.add('visible');
                 
                 if (this.state.controlsTimer) clearTimeout(this.state.controlsTimer);
-                
                 if (!persistent) {
                     this.state.controlsTimer = setTimeout(() => this.hideControls(), 3000);
                 }
             }
 
             hideControls() {
-                if (this.state.controlsVisible && !this.vp.paused) {
+                if (this.state.controlsVisible && !this.els.vp.paused) {
                     this.state.controlsVisible = false;
-                    this.ct.classList.remove('visible');
-                    document.body.style.cursor = 'none';
+                    this.els.ct.classList.remove('visible');
                 }
             }
 
@@ -669,7 +738,7 @@
             }
 
             handleKeyDown(e) {
-                if (!this.vp.src) return;
+                if (!this.els.vp.src) return;
                 
                 const keyMap = {
                     Space: () => {
@@ -679,19 +748,19 @@
                             this.state.spaceHoldTimer = setTimeout(() => this.startSpeedBoost(), 300);
                         }
                     },
-                    ArrowLeft: () => { e.preventDefault(); this.rw.click(); },
-                    ArrowRight: () => { e.preventDefault(); this.fw.click(); },
+                    ArrowLeft: () => { e.preventDefault(); this.els.rw.click(); },
+                    ArrowRight: () => { e.preventDefault(); this.els.fw.click(); },
                     ArrowUp: () => {
                         e.preventDefault();
-                        const newVol = Math.min(100, this.vp.volume * 100 + 5);
-                        this.setVolume(newVol);
-                        this.vs.value = newVol;
+                        const newVol = Math.min(100, this.els.vp.volume * 100 + 5);
+                        this.setVolume(newVol, true);
+                        this.els.vs.value = newVol;
                     },
                     ArrowDown: () => {
                         e.preventDefault();
-                        const newVol = Math.max(0, this.vp.volume * 100 - 5);
-                        this.setVolume(newVol);
-                        this.vs.value = newVol;
+                        const newVol = Math.max(0, this.els.vp.volume * 100 - 5);
+                        this.setVolume(newVol, true);
+                        this.els.vs.value = newVol;
                     },
                     KeyM: () => this.toggleMute(),
                     KeyF: () => this.toggleFullscreen(),
@@ -703,7 +772,7 @@
             }
 
             handleKeyUp(e) {
-                if (!this.vp.src || e.code !== 'Space') return;
+                if (!this.els.vp.src || e.code !== 'Space') return;
                 e.preventDefault();
                 
                 if (this.state.isSpaceHeld) {
@@ -713,7 +782,7 @@
                         this.state.spaceHoldTimer = null;
                     }
                     
-                    if (this.vp.playbackRate === 2) {
+                    if (this.els.vp.playbackRate === 2) {
                         this.endSpeedBoost();
                     } else {
                         this.togglePlayPause();
@@ -722,17 +791,19 @@
             }
 
             startSpeedBoost() {
-                if (this.vp.src && !this.vp.paused) {
-                    this.state.originalSpeed = this.vp.playbackRate;
-                    this.vp.playbackRate = 2;
-                    this.vc.style.filter = 'brightness(1.1)';
+                const { vp, vc } = this.els;
+                if (vp.src && !vp.paused) {
+                    this.state.originalSpeed = vp.playbackRate;
+                    vp.playbackRate = 2;
+                    vc.style.filter = 'brightness(1.1)';
                 }
             }
 
             endSpeedBoost() {
-                if (this.vp.src) {
-                    this.vp.playbackRate = this.state.originalSpeed;
-                    this.vc.style.filter = 'none';
+                const { vp, vc } = this.els;
+                if (vp.src) {
+                    vp.playbackRate = this.state.originalSpeed;
+                    vc.style.filter = 'none';
                 }
             }
         }

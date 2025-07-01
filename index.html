@@ -14,10 +14,14 @@
         .video-player{width:100%;background:#000;object-fit:contain;max-height:70vh}
         .controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:15px;transform:translateY(100%);transition:transform .3s,opacity .3s;opacity:0}
         .controls.visible{transform:none;opacity:1}
-        .progress-container{width:100%;height:6px;background:rgba(255,255,255,.2);border-radius:3px;margin-bottom:10px;cursor:pointer;position:relative}
-        .progress-bar{height:100%;background:linear-gradient(90deg,#2563eb,#3b82f6);border-radius:3px;width:0;transition:width .1s}
-        .progress-handle{position:absolute;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;background:#fff;border-radius:50%;opacity:0;transition:opacity .3s;left:0}
-        .progress-container:hover .progress-handle{opacity:1}
+        .progress-container{width:100%;height:10px;background:rgba(255,255,255,.2);border-radius:5px;margin-bottom:10px;cursor:pointer;position:relative;transition:height .2s,background .2s}
+        .progress-container:hover{height:12px;background:rgba(255,255,255,.3);box-shadow:0 0 8px rgba(37,99,235,.3)}
+        .progress-bar{height:100%;background:linear-gradient(90deg,#2563eb,#3b82f6);border-radius:5px;width:0;transition:width .05s linear}
+        .progress-handle{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#fff;border-radius:50%;box-shadow:0 0 6px rgba(0,0,0,.3);transition:left .05s linear,opacity .2s,width .2s,height .2s}
+        .progress-container:hover .progress-handle,.progress-container:active .progress-handle{opacity:1}
+        .progress-container:active .progress-handle{width:18px;height:18px}
+        .progress-tooltip{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);color:#fff;padding:4px 8px;border-radius:4px;font-size:12px;opacity:0;visibility:hidden;transition:opacity .2s;white-space:nowrap}
+        .progress-container:hover .progress-tooltip{opacity:1;visibility:visible}
         .control-buttons{display:grid;grid-template-columns:1fr auto 1fr;gap:15px}
         .control-group{display:flex;align-items:center;gap:10px}
         .control-group.right{justify-content:flex-end}
@@ -54,6 +58,10 @@
         .volume-overlay.muted .volume-overlay-fill{background:#ef4444}
         .volume-overlay.muted .volume-overlay-icon{animation:shake .5s ease-in-out}
         @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+        @media (hover: none) {
+            .progress-container{height:12px}
+            .progress-handle{opacity:1;width:18px;height:18px}
+        }
     </style>
 </head>
 <body>
@@ -84,6 +92,7 @@
             <div class="progress-container" id="progressContainer">
                 <div class="progress-bar" id="progressBar"></div>
                 <div class="progress-handle" id="progressHandle"></div>
+                <div class="progress-tooltip" id="progressTooltip">0:00</div>
             </div>
             <div class="control-buttons">
                 <div class="control-group left">
@@ -142,7 +151,8 @@
                     controlsTimer: null,
                     controlsVisible: false,
                     dragCount: 0,
-                    volumeOverlayTimer: null
+                    volumeOverlayTimer: null,
+                    lastDragTime: 0
                 };
                 this.init();
             }
@@ -153,7 +163,7 @@
                            'controls', 'playBtn', 'rewindBtn', 'forwardBtn', 'progressContainer', 
                            'progressBar', 'progressHandle', 'currentTime', 'duration', 'muteBtn', 
                            'volumeSlider', 'speedSelect', 'fullscreenBtn', 'pipBtn', 'changeBtn', 
-                           'helpBtn', 'shortcuts', 'volumeOverlay', 'volumeIcon', 'volumeFill', 'volumeText'];
+                           'helpBtn', 'shortcuts', 'volumeOverlay', 'volumeIcon', 'volumeFill', 'volumeText', 'progressTooltip'];
                 
                 ids.forEach(id => this.elements[id] = document.getElementById(id));
 
@@ -205,8 +215,13 @@
                 // Progress bar
                 progressContainer.addEventListener('click', e => this.seekToPosition(e));
                 progressContainer.addEventListener('mousedown', e => this.startDrag(e));
+                progressContainer.addEventListener('touchstart', e => this.startDrag(e));
                 document.addEventListener('mousemove', e => this.drag(e));
+                document.addEventListener('touchmove', e => this.drag(e));
                 document.addEventListener('mouseup', () => this.endDrag());
+                document.addEventListener('touchend', () => this.endDrag());
+                progressContainer.addEventListener('mousemove', e => this.updateTooltip(e));
+                progressContainer.addEventListener('touchmove', e => this.updateTooltip(e));
 
                 // Volume and speed
                 volumeSlider.addEventListener('input', e => this.setVolume(e.target.value));
@@ -300,9 +315,30 @@
             }
 
             seekToPosition(e) {
+                const now = performance.now();
+                if (now - this.state.lastDragTime < 16) return;
+                this.state.lastDragTime = now;
+
                 const rect = this.elements.progressContainer.getBoundingClientRect();
-                const progress = (e.clientX - rect.left) / rect.width;
+                const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                const progress = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
                 this.elements.video.currentTime = progress * this.elements.video.duration;
+                this.elements.progressBar.style.width = (progress * 100) + '%';
+                this.elements.progressHandle.style.left = (progress * 100) + '%';
+                this.elements.currentTime.textContent = this.formatTime(this.elements.video.currentTime);
+            }
+
+            updateTooltip(e) {
+                const { progressContainer, progressTooltip, video } = this.elements;
+                if (!video.src) return;
+                
+                const rect = progressContainer.getBoundingClientRect();
+                const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                const progress = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+                const time = progress * video.duration;
+                
+                progressTooltip.textContent = this.formatTime(time);
+                progressTooltip.style.left = `${progress * 100}%`;
             }
 
             seek(seconds) {
@@ -323,6 +359,7 @@
                 if (this.state.isDragging) {
                     e.preventDefault();
                     this.seekToPosition(e);
+                    this.updateTooltip(e);
                 }
             }
 
@@ -330,6 +367,8 @@
                 if (this.state.isDragging) {
                     this.state.isDragging = false;
                     if (this.state.wasPlaying) this.elements.video.play();
+                    this.elements.progressTooltip.style.opacity = '0';
+                    this.elements.progressTooltip.style.visibility = 'hidden';
                 }
             }
 

@@ -2,399 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/png" sizes="32x32" href="https://clipground.com/images/favicon-32x32-png-8.png">
     <title>Modern Video Player</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #0c0c0c, #1a1a1a);
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .video-container {
-            position: relative;
-            width: 100%;
-            max-width: 1200px;
-            background: #1a1a1a;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            border: 1px solid #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 200px;
-        }
-        .drop-zone {
-            position: absolute;
-            inset: 0;
-            background: rgba(37,99,235,0.1);
-            border: 3px dashed #2563eb;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            border-radius: 16px;
-        }
-        .drop-zone.active { opacity: 1; visibility: visible; }
-        .video-player {
-            width: 100%;
-            height: auto;
-            display: block;
-            background: #000;
-            object-fit: contain;
-            max-height: 70vh;
-        }
-        .controls {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            padding: 20px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            opacity: 0;
-            z-index: 100;
-        }
-        .controls.visible { transform: translateY(0); opacity: 1; }
-        .progress-container {
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 3px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            position: relative;
-        }
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #2563eb, #3b82f6);
-            border-radius: 3px;
-            width: 0%;
-            transition: width 0.1s ease;
-        }
-        .progress-handle {
-            position: absolute;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 16px;
-            height: 16px;
-            background: #fff;
-            border-radius: 50%;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            cursor: pointer;
-        }
-        .progress-container:hover .progress-handle { opacity: 1; }
-        .control-buttons { 
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            align-items: center;
-            gap: 20px;
-        }
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .control-group.left { justify-content: flex-start; }
-        .control-group.center { justify-content: center; }
-        .control-group.right { justify-content: flex-end; }
-        .btn {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); }
-        .btn-primary { background: #2563eb; padding: 12px 16px; }
-        .btn-primary:hover { background: #3b82f6; }
-        .time-display {
-            font-size: 14px;
-            font-weight: 500;
-            color: #e5e7eb;
-            margin: 0 10px;
-        }
-        .volume-container { display: flex; align-items: center; gap: 10px; }
-        .volume-slider {
-            width: 80px;
-            height: 4px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 2px;
-            outline: none;
-            cursor: pointer;
-        }
-        .volume-slider::-webkit-slider-thumb {
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            background: #fff;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .speed-select {
-            background: rgba(26, 26, 26, 0.95);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .speed-select:hover { background: rgba(40, 40, 40, 0.95); }
-        .file-input-container { text-align: center; padding: 60px 20px; }
-        .file-input { display: none; }
-        .file-label {
-            display: inline-block;
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            color: white;
-            padding: 16px 32px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 25px rgba(37,99,235,0.3);
-        }
-        .file-label:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 35px rgba(37,99,235,0.4);
-        }
-        .keyboard-shortcuts {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.9);
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            border: 1px solid #333;
-        }
-        .keyboard-shortcuts.visible { opacity: 1; visibility: visible; }
-        .shortcut-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            gap: 20px;
-        }
-        .shortcut-key {
-            background: #333;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-        }
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 18px;
-            z-index: 10;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid #2563eb;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .video-container.fullscreen {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            max-width: none;
-            border-radius: 0;
-            z-index: 9999;
-        }
-        .video-container.fullscreen .video-player {
-            width: 100vw;
-            height: 100vh;
-            object-fit: contain;
-            max-height: none;
-        }
-        .tooltip {
-            position: relative;
-        }
-        .tooltip::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 120%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            pointer-events: none;
-        }
-        .tooltip:hover::after { opacity: 1; visibility: visible; }
-        
-        /* Volume Overlay Styles */
-        .volume-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.85);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 18px;
-            z-index: 200;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
-        
-        .volume-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-            transform: translate(-50%, -50%) scale(1);
-        }
-        
-        .volume-overlay-icon {
-            font-size: 24px;
-            min-width: 30px;
-            text-align: center;
-        }
-        
-        .volume-overlay-bar {
-            width: 150px;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .volume-overlay-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #2563eb, #3b82f6);
-            border-radius: 4px;
-            transition: width 0.2s ease;
-            box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
-            position: relative;
-        }
-        
-        .volume-overlay-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 3px;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 0 4px 4px 0;
-        }
-        
-        .volume-overlay-text {
-            font-weight: 600;
-            min-width: 40px;
-            text-align: center;
-            color: #e5e7eb;
-        }
-        
-        /* Muted state styling */
-        .volume-overlay.muted .volume-overlay-fill {
-            background: #ef4444;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-        }
-        
-        .volume-overlay.muted .volume-overlay-icon {
-            animation: shake 0.5s ease-in-out;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-2px); }
-            75% { transform: translateX(2px); }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#0c0c0c,#1a1a1a);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+        .video-container{position:relative;width:100%;max-width:1200px;background:#1a1a1a;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid #333;min-height:200px}
+        .drop-zone{position:absolute;inset:0;background:rgba(37,99,235,.1);border:3px dashed #2563eb;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .3s;border-radius:16px}
+        .drop-zone.active{opacity:1;visibility:visible}
+        .video-player{width:100%;background:#000;object-fit:contain;max-height:70vh}
+        .controls{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.8));padding:15px;transform:translateY(100%);transition:transform .3s,opacity .3s;opacity:0}
+        .controls.visible{transform:none;opacity:1}
+        .progress-container{width:100%;height:6px;background:rgba(255,255,255,.2);border-radius:3px;margin-bottom:10px;cursor:pointer;position:relative}
+        .progress-bar{height:100%;background:linear-gradient(90deg,#2563eb,#3b82f6);border-radius:3px;width:0;transition:width .1s}
+        .progress-handle{position:absolute;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;background:#fff;border-radius:50%;opacity:0;transition:opacity .3s;left:0}
+        .progress-container:hover .progress-handle{opacity:1}
+        .control-buttons{display:grid;grid-template-columns:1fr auto 1fr;gap:15px}
+        .control-group{display:flex;align-items:center;gap:10px}
+        .control-group.right{justify-content:flex-end}
+        .btn{background:none;border:none;color:#fff;cursor:pointer;padding:6px;border-radius:6px;transition:all .3s;font-size:14px}
+        .btn:hover{background:rgba(255,255,255,.1);transform:scale(1.1)}
+        .btn-primary{background:#2563eb;padding:10px 14px}
+        .btn-primary:hover{background:#3b82f6}
+        .time-display{font-size:13px;color:#e5e7eb;margin:0 8px;min-width:100px}
+        .volume-container{display:flex;align-items:center;gap:8px}
+        .volume-slider{width:70px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;cursor:pointer;-webkit-appearance:none;appearance:none}
+        .volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:#fff;border-radius:50%;cursor:pointer}
+        .speed-select{background:rgba(26,26,26,.95);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px;border-radius:5px;font-size:11px;cursor:pointer}
+        .speed-select:hover{background:rgba(40,40,40,.95)}
+        .file-input-container{text-align:center;padding:40px 15px}
+        .file-input{display:none}
+        .file-label{display:inline-block;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;padding:12px 24px;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;transition:all .3s}
+        .file-label:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(37,99,235,.4)}
+        .keyboard-shortcuts{position:fixed;top:15px;right:15px;background:rgba(0,0,0,.9);padding:12px;border-radius:6px;font-size:11px;opacity:0;visibility:hidden;transition:opacity .3s;border:1px solid #333;max-width:250px}
+        .keyboard-shortcuts.visible{opacity:1;visibility:visible}
+        .shortcut-item{display:flex;justify-content:space-between;margin-bottom:4px;gap:15px}
+        .shortcut-key{background:#333;padding:2px 5px;border-radius:3px;font-family:monospace}
+        .loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:16px;text-align:center}
+        .spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.3);border-top:3px solid #2563eb;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 8px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .video-container.fullscreen{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;border-radius:0}
+        .video-container.fullscreen .video-player{width:100vw;height:100vh;max-height:none}
+        .tooltip{position:relative}
+        .tooltip:hover::after{content:attr(data-tooltip);position:absolute;bottom:120%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);color:#fff;padding:5px 8px;border-radius:5px;font-size:11px;white-space:nowrap;z-index:1000}
+        .volume-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);border-radius:10px;padding:15px;display:flex;align-items:center;gap:10px;font-size:16px;opacity:0;visibility:hidden;transition:opacity .3s;border:1px solid rgba(255,255,255,.1);box-shadow:0 6px 24px rgba(0,0,0,.5);z-index:100}
+        .volume-overlay.visible{opacity:1;visibility:visible}
+        .volume-overlay-bar{width:120px;height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden}
+        .volume-overlay-fill{height:100%;background:linear-gradient(90deg,#2563eb,#3b82f6);border-radius:3px;transition:width .2s}
+        .volume-overlay-text{min-width:35px;text-align:center;color:#e5e7eb}
+        .volume-overlay.muted .volume-overlay-fill{background:#ef4444}
+        .volume-overlay.muted .volume-overlay-icon{animation:shake .5s ease-in-out}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
     </style>
 </head>
 <body>
-    <div class="video-container" id="vc">
-        <div class="drop-zone" id="dz">
-            <div style="font-size: 4rem; margin-bottom: 1rem; color: #2563eb;">📁</div>
-            <h3>Drop your video file here</h3>
+    <div class="video-container" id="container">
+        <div class="drop-zone" id="dropZone">
+            <div style="font-size:3rem;margin-bottom:.75rem;color:#2563eb">📁</div>
+            <h3>Drop video here</h3>
             <p>or click to browse</p>
         </div>
-
-        <div class="file-input-container" id="fic">
-            <input type="file" id="fi" class="file-input" accept="video/*">
-            <label for="fi" class="file-label">📹 Choose Video File</label>
-            <p style="margin-top: 20px; opacity: 0.7;">Supports MP4, WebM, AVI, MOV and more</p>
+        <div class="file-input-container" id="fileContainer">
+            <input type="file" id="fileInput" class="file-input" accept="video/*">
+            <label for="fileInput" class="file-label">📹 Choose Video</label>
+            <p style="margin-top:15px;opacity:.7">Supports MP4, WebM, AVI, MOV</p>
         </div>
-
-        <video class="video-player" id="vp" style="display: none;"></video>
-
-        <div class="loading" id="ld" style="display: none;">
+        <video class="video-player" id="video" style="display:none"></video>
+        <div class="loading" id="loading" style="display:none">
             <div class="spinner"></div>
-            <div>Loading video...</div>
+            <div>Loading...</div>
         </div>
-
-        <!-- Volume Overlay -->
-        <div class="volume-overlay" id="vol-overlay">
-            <div class="volume-overlay-icon" id="vol-icon">🔊</div>
+        <div class="volume-overlay" id="volumeOverlay">
+            <div class="volume-overlay-icon" id="volumeIcon">🔊</div>
             <div class="volume-overlay-bar">
-                <div class="volume-overlay-fill" id="vol-fill"></div>
+                <div class="volume-overlay-fill" id="volumeFill"></div>
             </div>
-            <div class="volume-overlay-text" id="vol-text">100</div>
+            <div class="volume-overlay-text" id="volumeText">100</div>
         </div>
-
-        <div class="controls" id="ct">
-            <div class="progress-container" id="pc">
-                <div class="progress-bar" id="pb"></div>
-                <div class="progress-handle" id="ph"></div>
+        <div class="controls" id="controls">
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-handle" id="progressHandle"></div>
             </div>
-            
             <div class="control-buttons">
                 <div class="control-group left">
-                    <div class="time-display">
-                        <span id="ct1">0:00</span> / <span id="dur">0:00</span>
-                    </div>
-                    
+                    <div class="time-display"><span id="currentTime">0:00</span> / <span id="duration">0:00</span></div>
                     <div class="volume-container">
-                        <button class="btn tooltip" id="mt" data-tooltip="Mute/Unmute (M)">🔊</button>
-                        <input type="range" class="volume-slider tooltip" id="vs" min="0" max="100" value="100" data-tooltip="Volume (↑/↓)">
+                        <button class="btn tooltip" id="muteBtn" data-tooltip="Mute/Unmute (M)">🔊</button>
+                        <input type="range" class="volume-slider tooltip" id="volumeSlider" min="0" max="100" value="100" data-tooltip="Volume (↑/↓)">
                     </div>
-                    
-                    <select class="speed-select tooltip" id="ss" data-tooltip="Playback Speed">
+                    <select class="speed-select tooltip" id="speedSelect" data-tooltip="Playback Speed">
                         <option value="0.5">0.5x</option>
                         <option value="0.75">0.75x</option>
                         <option value="1" selected>1x</option>
@@ -403,25 +101,22 @@
                         <option value="2">2x</option>
                     </select>
                 </div>
-
                 <div class="control-group center">
-                    <button class="btn tooltip" id="rw" data-tooltip="Rewind 10s (←)">⏪</button>
-                    <button class="btn btn-primary tooltip" id="pp" data-tooltip="Play/Pause (Space)">▶️</button>
-                    <button class="btn tooltip" id="fw" data-tooltip="Forward 10s (→)">⏩</button>
+                    <button class="btn tooltip" id="rewindBtn" data-tooltip="Rewind 10s (←)">⏪</button>
+                    <button class="btn btn-primary tooltip" id="playBtn" data-tooltip="Play/Pause (Space)">▶️</button>
+                    <button class="btn tooltip" id="forwardBtn" data-tooltip="Forward 10s (→)">⏩</button>
                 </div>
-
                 <div class="control-group right">
-                    <button class="btn tooltip" id="fs" data-tooltip="Fullscreen (F)">⛶</button>
-                    <button class="btn tooltip" id="pip" data-tooltip="Picture-in-Picture (P)">📺</button>
-                    <button class="btn tooltip" id="cs" data-tooltip="Change Source (C)">📁</button>
-                    <button class="btn tooltip" id="hlp" data-tooltip="Keyboard Shortcuts">❓</button>
+                    <button class="btn tooltip" id="fullscreenBtn" data-tooltip="Fullscreen (F)">⛶</button>
+                    <button class="btn tooltip" id="pipBtn" data-tooltip="Picture-in-Picture (P)">📺</button>
+                    <button class="btn tooltip" id="changeBtn" data-tooltip="Change Source (C)">📁</button>
+                    <button class="btn tooltip" id="helpBtn" data-tooltip="Keyboard Shortcuts">❓</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <div class="keyboard-shortcuts" id="ks">
-        <h4 style="margin-bottom: 10px;">Keyboard Shortcuts</h4>
+    <div class="keyboard-shortcuts" id="shortcuts">
+        <h4 style="margin-bottom:8px">Keyboard Shortcuts</h4>
         <div class="shortcut-item"><span>Play/Pause</span><span class="shortcut-key">Space</span></div>
         <div class="shortcut-item"><span>Speed Boost (hold)</span><span class="shortcut-key">Space</span></div>
         <div class="shortcut-item"><span>Seek Forward</span><span class="shortcut-key">→</span></div>
@@ -433,13 +128,11 @@
         <div class="shortcut-item"><span>Fullscreen</span><span class="shortcut-key">F</span></div>
         <div class="shortcut-item"><span>Picture-in-Picture</span><span class="shortcut-key">P</span></div>
     </div>
-
+    
     <script>
         class VideoPlayer {
             constructor() {
-                this.els = 'vc,vp,fi,fic,dz,ld,ct,pp,rw,fw,pc,pb,ph,ct1,dur,mt,vs,ss,fs,pip,cs,hlp,ks,vol-overlay,vol-icon,vol-fill,vol-text'
-                    .split(',').reduce((acc, id) => ({ ...acc, [id.replace('-', '')]: document.getElementById(id) }), {});
-                
+                this.elements = {};
                 this.state = {
                     isDragging: false,
                     wasPlaying: false,
@@ -451,237 +144,236 @@
                     dragCount: 0,
                     volumeOverlayTimer: null
                 };
-                
                 this.init();
             }
 
             init() {
-                const { vc, vp, fi, dz, pc, ph, vs, ss, pp, rw, fw, mt, fs, pip, cs, hlp, ks } = this.els;
+                // Cache DOM elements
+                const ids = ['container', 'video', 'fileInput', 'fileContainer', 'dropZone', 'loading', 
+                           'controls', 'playBtn', 'rewindBtn', 'forwardBtn', 'progressContainer', 
+                           'progressBar', 'progressHandle', 'currentTime', 'duration', 'muteBtn', 
+                           'volumeSlider', 'speedSelect', 'fullscreenBtn', 'pipBtn', 'changeBtn', 
+                           'helpBtn', 'shortcuts', 'volumeOverlay', 'volumeIcon', 'volumeFill', 'volumeText'];
                 
-                // File handling
-                fi.onchange = e => this.loadVideo(e.target.files[0]);
-                ['dragover', 'dragenter'].forEach(evt => 
-                    vc.addEventListener(evt, e => this.handleDrag(e, true))
-                );
-                vc.ondragleave = e => this.handleDrag(e, false);
-                vc.ondrop = e => this.handleDrop(e);
-                dz.onclick = () => fi.click();
+                ids.forEach(id => this.elements[id] = document.getElementById(id));
+
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                const { container, video, fileInput, dropZone, progressContainer, volumeSlider, 
+                       speedSelect, playBtn, rewindBtn, forwardBtn, muteBtn, fullscreenBtn, 
+                       pipBtn, changeBtn, helpBtn, shortcuts, controls } = this.elements;
+
+                // File input
+                fileInput.addEventListener('change', e => this.loadVideo(e.target.files[0]));
+
+                // Drag and drop
+                ['dragover', 'dragenter'].forEach(event => 
+                    container.addEventListener(event, e => this.handleDrag(e, true)));
+                container.addEventListener('dragleave', e => this.handleDrag(e, false));
+                container.addEventListener('drop', e => this.handleDrop(e));
+                dropZone.addEventListener('click', () => fileInput.click());
 
                 // Video events
-                Object.assign(vp, {
-                    onloadstart: () => this.els.ld.style.display = 'block',
-                    oncanplay: () => this.els.ld.style.display = 'none',
-                    ontimeupdate: () => this.updateProgress(),
-                    onloadedmetadata: () => this.els.dur.textContent = this.formatTime(vp.duration),
-                    onended: () => { pp.textContent = '▶️'; this.showControls(true); },
-                    onclick: () => this.togglePlayPause(),
-                    ondblclick: () => this.toggleFullscreen()
-                });
+                const videoEvents = {
+                    loadstart: () => this.elements.loading.style.display = 'block',
+                    canplay: () => this.elements.loading.style.display = 'none',
+                    timeupdate: () => this.updateProgress(),
+                    loadedmetadata: () => this.elements.duration.textContent = this.formatTime(video.duration),
+                    ended: () => {
+                        this.elements.playBtn.textContent = '▶️';
+                        this.showControls(true);
+                    },
+                    click: () => this.togglePlayPause(),
+                    dblclick: () => this.toggleFullscreen()
+                };
 
-                // Controls
-                pp.onclick = () => this.togglePlayPause();
-                rw.onclick = () => vp.currentTime = Math.max(0, vp.currentTime - 10);
-                fw.onclick = () => vp.currentTime = Math.min(vp.duration, vp.currentTime + 10);
-                mt.onclick = () => this.toggleMute();
-                fs.onclick = () => this.toggleFullscreen();
-                pip.onclick = () => this.togglePIP();
-                cs.onclick = () => this.changeSource();
-                hlp.onclick = () => ks.classList.toggle('visible');
+                Object.entries(videoEvents).forEach(([event, handler]) => 
+                    video.addEventListener(event, handler));
 
-                // Progress
-                pc.onclick = e => this.seek(e);
-                [pc, ph].forEach(el => el.onmousedown = e => this.startDrag(e));
-                document.onmousemove = e => this.drag(e);
-                document.onmouseup = () => this.endDrag();
+                // Control buttons
+                playBtn.addEventListener('click', () => this.togglePlayPause());
+                rewindBtn.addEventListener('click', () => this.seek(-10));
+                forwardBtn.addEventListener('click', () => this.seek(10));
+                muteBtn.addEventListener('click', () => this.toggleMute());
+                fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+                pipBtn.addEventListener('click', () => this.togglePIP());
+                changeBtn.addEventListener('click', () => this.changeSource());
+                helpBtn.addEventListener('click', () => shortcuts.classList.toggle('visible'));
 
-                // Volume & Speed
-                vs.oninput = e => this.setVolume(e.target.value);
-                ss.onchange = e => vp.playbackRate = parseFloat(e.target.value);
+                // Progress bar
+                progressContainer.addEventListener('click', e => this.seekToPosition(e));
+                progressContainer.addEventListener('mousedown', e => this.startDrag(e));
+                document.addEventListener('mousemove', e => this.drag(e));
+                document.addEventListener('mouseup', () => this.endDrag());
 
-                // Auto-hide controls
-                vc.onmousemove = () => this.showControls();
-                vc.onmouseleave = () => this.hideControlsDelayed();
-                this.els.ct.onmouseenter = () => this.showControls();
-                this.els.ct.onmouseleave = () => this.hideControlsDelayed();
-                vc.ontouchstart = () => this.toggleControlsVisibility();
+                // Volume and speed
+                volumeSlider.addEventListener('input', e => this.setVolume(e.target.value));
+                speedSelect.addEventListener('change', e => video.playbackRate = +e.target.value);
 
-                // Keyboard
-                document.onkeydown = e => this.handleKeyDown(e);
-                document.onkeyup = e => this.handleKeyUp(e);
+                // Controls visibility
+                container.addEventListener('mousemove', () => this.showControls());
+                container.addEventListener('mouseleave', () => this.hideControlsDelayed());
+                controls.addEventListener('mouseenter', () => this.showControls());
+                controls.addEventListener('mouseleave', () => this.hideControlsDelayed());
+                container.addEventListener('touchstart', () => this.toggleControlsVisibility());
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', e => this.handleKeyDown(e));
+                document.addEventListener('keyup', e => this.handleKeyUp(e));
             }
 
             handleDrag(e, isEnter) {
                 if (this.state.isDragging || this.isControlsInteraction(e)) return;
-                
                 e.preventDefault();
                 e.stopPropagation();
                 
-                if (isEnter) {
-                    this.state.dragCount++;
-                    this.els.dz.classList.add('active');
-                } else {
-                    this.state.dragCount = Math.max(0, this.state.dragCount - 1);
-                    if (this.state.dragCount === 0) this.els.dz.classList.remove('active');
-                }
+                this.state.dragCount = isEnter ? this.state.dragCount + 1 : Math.max(0, this.state.dragCount - 1);
+                this.elements.dropZone.classList.toggle('active', this.state.dragCount > 0);
             }
 
             handleDrop(e) {
                 if (this.state.isDragging || this.isControlsInteraction(e)) return;
-                
                 e.preventDefault();
                 e.stopPropagation();
+                
                 this.state.dragCount = 0;
-                this.els.dz.classList.remove('active');
+                this.elements.dropZone.classList.remove('active');
                 
                 const file = e.dataTransfer.files[0];
                 if (file?.type.startsWith('video/')) this.loadVideo(file);
             }
 
             isControlsInteraction(e) {
-                const { ct, pc, pb, ph, vs } = this.els;
-                return [ct, pc, pb, ph, vs].some(el => el === e.target || el.contains(e.target));
+                const controlElements = [this.elements.controls, this.elements.progressContainer, this.elements.volumeSlider];
+                return controlElements.some(el => el === e.target || el.contains(e.target));
             }
 
             loadVideo(file) {
                 if (!file) return;
-                const { vp, fic, pp, pb, ph } = this.els;
                 
-                if (vp.src?.startsWith('blob:')) URL.revokeObjectURL(vp.src);
+                const { video, fileContainer, playBtn, progressBar, progressHandle } = this.elements;
                 
-                vp.src = URL.createObjectURL(file);
-                fic.style.display = 'none';
-                vp.style.display = 'block';
+                if (video.src?.startsWith('blob:')) URL.revokeObjectURL(video.src);
+                
+                video.src = URL.createObjectURL(file);
+                fileContainer.style.display = 'none';
+                video.style.display = 'block';
                 document.title = `Video Player - ${file.name}`;
-                pp.textContent = '▶️';
-                pb.style.width = '0%';
-                ph.style.left = '0%';
+                playBtn.textContent = '▶️';
+                progressBar.style.width = progressHandle.style.left = '0%';
             }
 
             togglePlayPause() {
-                const { vp, pp } = this.els;
-                if (vp.paused) {
-                    vp.play();
-                    pp.textContent = '⏸️';
+                const { video, playBtn } = this.elements;
+                if (video.paused) {
+                    video.play();
+                    playBtn.textContent = '⏸️';
                     this.showControls();
                 } else {
-                    vp.pause();
-                    pp.textContent = '▶️';
+                    video.pause();
+                    playBtn.textContent = '▶️';
                     this.showControls(true);
                 }
             }
 
             updateProgress() {
                 if (this.state.isDragging) return;
-                const { vp, pb, ph, ct1 } = this.els;
-                const progress = (vp.currentTime / vp.duration) * 100;
-                pb.style.width = progress + '%';
-                ph.style.left = progress + '%';
-                ct1.textContent = this.formatTime(vp.currentTime);
+                
+                const { video, progressBar, progressHandle, currentTime } = this.elements;
+                const progress = (video.currentTime / video.duration) * 100;
+                
+                progressBar.style.width = progress + '%';
+                progressHandle.style.left = progress + '%';
+                currentTime.textContent = this.formatTime(video.currentTime);
             }
 
             formatTime(seconds) {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-        return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                
+                return h > 0 
+                    ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+                    : `${m}:${s.toString().padStart(2, '0')}`;
+            }
 
-            seek(e) {
-                const rect = this.els.pc.getBoundingClientRect();
-                const percent = (e.clientX - rect.left) / rect.width;
-                this.els.vp.currentTime = percent * this.els.vp.duration;
+            seekToPosition(e) {
+                const rect = this.elements.progressContainer.getBoundingClientRect();
+                const progress = (e.clientX - rect.left) / rect.width;
+                this.elements.video.currentTime = progress * this.elements.video.duration;
+            }
+
+            seek(seconds) {
+                const { video } = this.elements;
+                video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
             }
 
             startDrag(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 this.state.isDragging = true;
-                this.state.wasPlaying = !this.els.vp.paused;
-                this.els.vp.pause();
-                this.seek(e);
+                this.state.wasPlaying = !this.elements.video.paused;
+                this.elements.video.pause();
+                this.seekToPosition(e);
             }
 
-            drag(e) { 
+            drag(e) {
                 if (this.state.isDragging) {
                     e.preventDefault();
-                    this.seek(e);
+                    this.seekToPosition(e);
                 }
             }
 
             endDrag() {
                 if (this.state.isDragging) {
                     this.state.isDragging = false;
-                    if (this.state.wasPlaying) this.els.vp.play();
+                    if (this.state.wasPlaying) this.elements.video.play();
                 }
             }
 
             toggleMute() {
-                const { vp, mt, vs } = this.els;
-                vp.muted = !vp.muted;
-                mt.textContent = vp.muted ? '🔇' : '🔊';
-                if (!vp.muted) vs.value = vp.volume * 100;
-                
-                // Show volume overlay when muting/unmuting
+                const { video, muteBtn, volumeSlider } = this.elements;
+                video.muted = !video.muted;
+                muteBtn.textContent = video.muted ? '🔇' : '🔊';
+                if (!video.muted) volumeSlider.value = video.volume * 100;
                 this.showVolumeOverlay();
             }
 
             setVolume(value, showOverlay = false) {
-                const { vp, mt } = this.els;
-                vp.volume = value / 100;
-                vp.muted = false;
-                mt.textContent = value > 0 ? '🔊' : '🔇';
-                
-                if (showOverlay) {
-                    this.showVolumeOverlay();
-                }
+                const { video, muteBtn } = this.elements;
+                video.volume = value / 100;
+                video.muted = false;
+                muteBtn.textContent = value > 0 ? '🔊' : '🔇';
+                if (showOverlay) this.showVolumeOverlay();
             }
 
             showVolumeOverlay() {
-                const { vp, voloverlay, volicon, volfill, voltext } = this.els;
+                const { video, volumeOverlay, volumeIcon, volumeFill, volumeText } = this.elements;
+                if (!video.src) return;
                 
-                if (!vp.src) return;
+                const volume = Math.round(video.volume * 100);
+                const isMuted = video.muted || volume === 0;
                 
-                const volume = Math.round(vp.volume * 100);
-                const isMuted = vp.muted || volume === 0;
+                volumeIcon.textContent = isMuted ? '🔇' : volume > 50 ? '🔊' : volume > 0 ? '🔉' : '🔇';
+                volumeFill.style.width = isMuted ? '0%' : volume + '%';
+                volumeText.textContent = isMuted ? '0' : volume;
+                volumeOverlay.classList.toggle('muted', isMuted);
+                volumeOverlay.classList.add('visible');
                 
-                // Update overlay content
-                volicon.textContent = isMuted ? '🔇' : (volume > 50 ? '🔊' : (volume > 0 ? '🔉' : '🔇'));
-                volfill.style.width = isMuted ? '0%' : `${volume}%`;
-                voltext.textContent = isMuted ? '0' : volume.toString();
-                
-                // Update styling for muted state
-                if (isMuted) {
-                    voloverlay.classList.add('muted');
-                } else {
-                    voloverlay.classList.remove('muted');
-                }
-                
-                // Show overlay
-                voloverlay.classList.add('visible');
-                
-                // Clear existing timer
-                if (this.state.volumeOverlayTimer) {
-                    clearTimeout(this.state.volumeOverlayTimer);
-                }
-                
-                // Hide overlay after 2 seconds
-                this.state.volumeOverlayTimer = setTimeout(() => {
-                    voloverlay.classList.remove('visible');
-                }, 2000);
+                if (this.state.volumeOverlayTimer) clearTimeout(this.state.volumeOverlayTimer);
+                this.state.volumeOverlayTimer = setTimeout(() => volumeOverlay.classList.remove('visible'), 1500);
             }
 
             toggleFullscreen() {
-                const { vc } = this.els;
-                if (!document.fullscreenElement) {
-                    vc.requestFullscreen();
-                    vc.classList.add('fullscreen');
-                } else {
+                const { container } = this.elements;
+                if (document.fullscreenElement) {
                     document.exitFullscreen();
-                    vc.classList.remove('fullscreen');
+                    container.classList.remove('fullscreen');
+                } else {
+                    container.requestFullscreen();
+                    container.classList.add('fullscreen');
                 }
             }
 
@@ -689,8 +381,8 @@
                 try {
                     if (document.pictureInPictureElement) {
                         await document.exitPictureInPicture();
-                    } else if (document.pictureInPictureEnabled && !this.els.vp.disablePictureInPicture) {
-                        await this.els.vp.requestPictureInPicture();
+                    } else if (document.pictureInPictureEnabled && !this.elements.video.disablePictureInPicture) {
+                        await this.elements.video.requestPictureInPicture();
                     }
                 } catch (e) {
                     console.log('PIP not supported');
@@ -698,40 +390,39 @@
             }
 
             changeSource() {
-                const input = Object.assign(document.createElement('input'), {
-                    type: 'file',
-                    accept: 'video/*',
-                    style: 'display: none',
-                    onchange: e => {
-                        const file = e.target.files[0];
-                        if (file) this.loadVideo(file);
-                        document.body.removeChild(input);
-                    }
-                });
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'video/*';
+                input.style.display = 'none';
+                input.onchange = e => {
+                    const file = e.target.files[0];
+                    if (file) this.loadVideo(file);
+                    document.body.removeChild(input);
+                };
                 document.body.appendChild(input);
                 input.click();
             }
 
             showControls(persistent = false) {
                 this.state.controlsVisible = true;
-                this.els.ct.classList.add('visible');
+                this.elements.controls.classList.add('visible');
                 
                 if (this.state.controlsTimer) clearTimeout(this.state.controlsTimer);
                 if (!persistent) {
-                    this.state.controlsTimer = setTimeout(() => this.hideControls(), 3000);
+                    this.state.controlsTimer = setTimeout(() => this.hideControls(), 2000);
                 }
             }
 
             hideControls() {
-                if (this.state.controlsVisible && !this.els.vp.paused) {
+                if (this.state.controlsVisible && !this.elements.video.paused) {
                     this.state.controlsVisible = false;
-                    this.els.ct.classList.remove('visible');
+                    this.elements.controls.classList.remove('visible');
                 }
             }
 
             hideControlsDelayed() {
                 if (this.state.controlsTimer) clearTimeout(this.state.controlsTimer);
-                this.state.controlsTimer = setTimeout(() => this.hideControls(), 1000);
+                this.state.controlsTimer = setTimeout(() => this.hideControls(), 800);
             }
 
             toggleControlsVisibility() {
@@ -739,9 +430,9 @@
             }
 
             handleKeyDown(e) {
-                if (!this.els.vp.src) return;
+                if (!this.elements.video.src) return;
                 
-                const keyMap = {
+                const keyHandlers = {
                     Space: () => {
                         e.preventDefault();
                         if (!this.state.isSpaceHeld) {
@@ -749,19 +440,25 @@
                             this.state.spaceHoldTimer = setTimeout(() => this.startSpeedBoost(), 300);
                         }
                     },
-                    ArrowLeft: () => { e.preventDefault(); this.els.rw.click(); },
-                    ArrowRight: () => { e.preventDefault(); this.els.fw.click(); },
+                    ArrowLeft: () => {
+                        e.preventDefault();
+                        this.seek(-10);
+                    },
+                    ArrowRight: () => {
+                        e.preventDefault();
+                        this.seek(10);
+                    },
                     ArrowUp: () => {
                         e.preventDefault();
-                        const newVol = Math.min(100, this.els.vp.volume * 100 + 5);
-                        this.setVolume(newVol, true);
-                        this.els.vs.value = newVol;
+                        const newVolume = Math.min(100, this.elements.video.volume * 100 + 5);
+                        this.setVolume(newVolume, true);
+                        this.elements.volumeSlider.value = newVolume;
                     },
                     ArrowDown: () => {
                         e.preventDefault();
-                        const newVol = Math.max(0, this.els.vp.volume * 100 - 5);
-                        this.setVolume(newVol, true);
-                        this.els.vs.value = newVol;
+                        const newVolume = Math.max(0, this.elements.video.volume * 100 - 5);
+                        this.setVolume(newVolume, true);
+                        this.elements.volumeSlider.value = newVolume;
                     },
                     KeyM: () => this.toggleMute(),
                     KeyF: () => this.toggleFullscreen(),
@@ -769,13 +466,13 @@
                     KeyP: () => this.togglePIP()
                 };
                 
-                keyMap[e.code]?.();
+                keyHandlers[e.code]?.();
             }
 
             handleKeyUp(e) {
-                if (!this.els.vp.src || e.code !== 'Space') return;
-                e.preventDefault();
+                if (!this.elements.video.src || e.code !== 'Space') return;
                 
+                e.preventDefault();
                 if (this.state.isSpaceHeld) {
                     this.state.isSpaceHeld = false;
                     if (this.state.spaceHoldTimer) {
@@ -783,7 +480,7 @@
                         this.state.spaceHoldTimer = null;
                     }
                     
-                    if (this.els.vp.playbackRate === 2) {
+                    if (this.elements.video.playbackRate === 2) {
                         this.endSpeedBoost();
                     } else {
                         this.togglePlayPause();
@@ -792,23 +489,24 @@
             }
 
             startSpeedBoost() {
-                const { vp, vc } = this.els;
-                if (vp.src && !vp.paused) {
-                    this.state.originalSpeed = vp.playbackRate;
-                    vp.playbackRate = 2;
-                    vc.style.filter = 'brightness(1.1)';
+                const { video, container } = this.elements;
+                if (video.src && !video.paused) {
+                    this.state.originalSpeed = video.playbackRate;
+                    video.playbackRate = 2;
+                    container.style.filter = 'brightness(1.1)';
                 }
             }
 
             endSpeedBoost() {
-                const { vp, vc } = this.els;
-                if (vp.src) {
-                    vp.playbackRate = this.state.originalSpeed;
-                    vc.style.filter = 'none';
+                const { video, container } = this.elements;
+                if (video.src) {
+                    video.playbackRate = this.state.originalSpeed;
+                    container.style.filter = 'none';
                 }
             }
         }
 
+        // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => new VideoPlayer());
     </script>
 </body>
